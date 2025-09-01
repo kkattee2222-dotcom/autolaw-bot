@@ -1,8 +1,8 @@
 import telebot
 from telebot import types
-import os
 
-BOT_TOKEN = os.getenv("BOT_TOKEN")
+# Токен твоего бота
+BOT_TOKEN = "8165229786:AAE8-Oy3ttAdguXoliLy9REWUknZ3hqbPZo"
 bot = telebot.TeleBot(BOT_TOKEN)
 
 # Админы — сюда будут приходить заявки
@@ -164,4 +164,5 @@ def contact_lawyer(message):
 def fallback(message):
     bot.send_message(message.chat.id, "⚠️ Пожалуйста, выберите нужный раздел с клавиатуры.")
 
+# Запуск бота
 bot.polling(none_stop=True)
