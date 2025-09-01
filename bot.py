@@ -1,18 +1,18 @@
 import telebot
 from telebot import types
+from flask import Flask, request
 
 # =========================
-# Токен твоего бота
 BOT_TOKEN = "8473490832:AAG3i471zHemKSrk52bb7S4Yx_SxC9grvH0"
-bot = telebot.TeleBot(BOT_TOKEN)
-
-# Публичный URL проекта на Railway (Live URL)
 WEBHOOK_URL = "https://autolaw-bot-production.up.railway.app"
 
-# Админы, которые получают заявки
+bot = telebot.TeleBot(BOT_TOKEN)
+app = Flask(__name__)
+
+# Админы
 ADMINS = [8179965778, 8117502632, 8037207761]
 
-# Юрист и канал с отзывами
+# Юрист и канал отзывов
 CONSULTANT_USERNAME = "@Serg_help"
 REVIEW_CHANNEL_LINK = "@doc_of_service"
 
@@ -26,7 +26,8 @@ def main_menu_markup():
     markup.add("💬 Все вопросы к юристу")
     return markup
 
-# --- Старт ---
+# =========================
+# Старт
 @bot.message_handler(commands=['start'])
 def start(message):
     bot.send_message(
@@ -39,7 +40,7 @@ def start(message):
     )
 
 # =========================
-# Функции для всех разделов
+# Универсальная функция отправки заявок админам
 def send_to_admins(user, data, title):
     for admin_id in ADMINS:
         bot.send_message(
@@ -56,7 +57,8 @@ def handle_text_form(message, title):
         bot.send_message(message.chat.id, "⚠️ Пожалуйста, отправьте данные текстом.")
         bot.register_next_step_handler(message, lambda m: handle_text_form(m, title))
 
-# --- Международные права ---
+# =========================
+# Разделы меню
 @bot.message_handler(func=lambda m: m.text == "🚘 Международные права")
 def intl_license(message):
     bot.send_message(
@@ -67,7 +69,6 @@ def intl_license(message):
     )
     bot.register_next_step_handler(message, lambda m: handle_text_form(m, "Заявка на международные права"))
 
-# --- Проверка штрафов ---
 @bot.message_handler(func=lambda m: m.text == "🧾 Проверка штрафов")
 def fines_form(message):
     bot.send_message(
@@ -78,18 +79,16 @@ def fines_form(message):
     )
     bot.register_next_step_handler(message, lambda m: handle_text_form(m, "Проверка штрафов"))
 
-# --- Первичное получение прав ---
 @bot.message_handler(func=lambda m: m.text == "📜 Первичное получение прав")
 def primary_license(message):
     bot.send_message(
         message.chat.id,
-        "📜 *Анкета для первичного получения водительского удостоверения:*\n"
+        "📜 *Анкета для первичного получения ВУ:*\n"
         "1. ФИО:\n2. Дата рождения:\n3. Гражданство:\n4. Адрес проживания:\n5. Фото паспорта:",
         parse_mode="Markdown"
     )
     bot.register_next_step_handler(message, lambda m: handle_text_form(m, "Первичное получение ВУ"))
 
-# --- Помощь при лишении прав ---
 @bot.message_handler(func=lambda m: m.text == "⚖️ Помощь при лишении")
 def help_license(message):
     bot.send_message(
@@ -100,7 +99,8 @@ def help_license(message):
     )
     bot.register_next_step_handler(message, lambda m: handle_text_form(m, "Помощь при лишении ВУ"))
 
-# --- Медиа ---
+# =========================
+# Фото и документы
 @bot.message_handler(content_types=['photo', 'document'])
 def handle_media(message):
     for admin_id in ADMINS:
@@ -110,40 +110,10 @@ def handle_media(message):
             bot.send_document(admin_id, message.document.file_id, caption=f"Документ от @{message.from_user.username}")
     bot.send_message(message.chat.id, "Фото/документ получены, спасибо! Ожидайте ответа.")
 
-# --- Отзывы ---
+# =========================
+# Отзывы и гарантии
 @bot.message_handler(func=lambda m: m.text == "📢 Отзывы")
 def show_reviews(message):
-    bot.send_message(message.chat.id, f"🗣 Ознакомьтесь с отзывами наших клиентов:\n👉 {REVIEW_CHANNEL_LINK}")
+    bot.send_message(message.chat.id, f"🗣 Ознакомьтесь с отзывами клиентов:\n👉 {REVIEW_CHANNEL_LINK}")
 
-# --- Гарантии ---
-@bot.message_handler(func=lambda m: m.text == "✅ Наши гарантии")
-def show_guarantees(message):
-    bot.send_message(
-        message.chat.id,
-        "✅ *Наши гарантии:*\n"
-        "- Работаем официально и законно.\n"
-        "- Оформление без очередей и лишней бюрократии.\n"
-        "- Полная прозрачность и сопровождение каждого клиента.\n"
-        "- Проверенные юристы с опытом.\n"
-        "- Все детали можно уточнить у консультанта или в отзывах.",
-        parse_mode="Markdown"
-    )
-
-# --- Контакт с юристом ---
-@bot.message_handler(func=lambda m: m.text == "💬 Все вопросы к юристу")
-def contact_lawyer(message):
-    bot.send_message(
-        message.chat.id,
-        f"👨‍⚖️ По всем вопросам свяжитесь с нашим юристом напрямую:\n{CONSULTANT_USERNAME}\n\n"
-        "📌 Он ответит на любые вопросы и подскажет по вашей ситуации."
-    )
-
-# --- Фолбэк ---
-@bot.message_handler(content_types=["text"])
-def fallback(message):
-    bot.send_message(message.chat.id, "⚠️ Пожалуйста, выберите нужный раздел с клавиатуры.")
-
-# Запуск бота через polling (подходит для Railway)
-bot.remove_webhook()
-bot.set_webhook(url=WEBHOOK_URL)
-bot.polling(none_stop=True)
+@bot.message_handler(func=lambda m: m
